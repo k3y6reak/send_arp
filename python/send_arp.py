@@ -4,7 +4,7 @@ import netifaces as netif# pip install netifaces
 from struct import pack, unpack
 from binascii import hexlify, unhexlify
 
-ETHER_ARP_TYPE = '\x08\x06'
+ETHER_ARP_TYPE = 0x0806
 HARD_TYPE = 0x0001
 PROTO_TYPE = 0x0800
 HARD_ADDR_LEN = 0x06
@@ -34,7 +34,7 @@ def send_arp(interface, victim_mac, victim_ip,  my_ip, my_mac, gateway_ip, OPER)
     ether_hdr = ""
     ether_hdr += pack('!6s', DST_MAC)
     ether_hdr += pack('!6s', SRC_MAC)
-    ether_hdr += pack('!2s', ETHER_ARP_TYPE)
+    ether_hdr += pack('!H', ETHER_ARP_TYPE)
     arp_hdr = ""
     arp_hdr += pack('!H', HARD_TYPE)
     arp_hdr += pack('!H', PROTO_TYPE)
